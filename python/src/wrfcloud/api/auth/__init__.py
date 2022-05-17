@@ -9,6 +9,7 @@ from typing import Union
 import jwt
 from wrfcloud.log import Logger
 from wrfcloud.user import User, get_user_from_system
+from wrfcloud.api.auth.refresh import RefreshTokenDao
 
 
 KEY_EMAIL = 'email'
@@ -74,3 +75,41 @@ def get_user_from_jwt(token: str) -> Union[User, None]:
     user = None if payload is None else get_user_from_system(payload[KEY_EMAIL])
 
     return user
+
+
+def issue_refresh_token(user: User) -> Union[str, None]:
+    """
+    Save a refresh token to the database with the user's email address
+    :param user: Issue a refresh token to this user
+    :return: A new refresh token
+    """
+    # create a new refresh token value
+    token = secrets.token_hex(32)
+
+    # add the token to the database for the given user
+    dao = RefreshTokenDao()
+    if dao.add_refresh_token(user, token):
+        return token
+
+    # adding failed
+    return None
+
+
+def get_refresh_token(token: str) -> Union[dict, None]:
+    """
+    Get a full refresh token given the refresh token's value
+    :param token: The refresh token value
+    :return: Full information about refresh token, or None if not found
+    """
+    dao = RefreshTokenDao()
+    return dao.get_refresh_token(token)
+
+
+def delete_refresh_token(token: str) -> bool:
+    """
+    Delete a refresh token from the system
+    :param token: The refresh token value
+    :return: True if deleted, otherwise False
+    """
+    dao = RefreshTokenDao()
+    return dao.remove_refresh_token(token)
